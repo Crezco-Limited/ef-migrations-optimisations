@@ -58,7 +58,7 @@ jobs:
 
                 $result = az storage blob exists --account-name efmigrationscache --container-name migrations --name "$hash.exe" --account-key ${{ secrets.ACCOUNT_KEY }}
                 Set-Variable -Name ${context}_CacheHit -Value ($result | ConvertFrom-Json).exists
-                if (Get-Variable -Name ${context}_CacheHit) {
+                if (Get-Variable -Name ${context}_CacheHit -ValueOnly) {
                   Write-Host "Cache hit, downloading migrations"
                   az storage blob download -f "${{ github.workspace }}/migration-${context}-${{ github.run_number }}.exe" --account-name efmigrationscache --account-key ${{ secrets.ACCOUNT_KEY }} --container-name migrations --name "$hash.exe"
                 } else {
