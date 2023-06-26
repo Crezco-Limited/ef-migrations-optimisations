@@ -73,7 +73,6 @@ jobs:
           azPSVersion: "latest"
 
       - name: Create Bundles
-        if: steps.checkCache.outputs.TestContext_CACHE_HIT != 'true'
         shell: pwsh
         run: |
           Write-Host "Creating bundles for scripts that aren't in cache"
@@ -84,11 +83,12 @@ jobs:
           {
             $cacheHitOutput = "steps.checkCache.outputs.${context}_CACHE_HIT"
             Write-Host $cacheHitOutput
+            Write-Host ${{ ($cacheHitOutput) }}
           }
         working-directory: ${{ env.WORKING_DIRECTORY }}
 
       - name: Upload Bundles to Cache
-        if: steps.checkCache.outputs.TestContext_CACHE_HIT != 'false'
+        if: steps.checkCache.outputs.TestContext_CACHE_HIT != 'False'
         uses: azure/powershell@v1
         with:
           inlinescript: |
