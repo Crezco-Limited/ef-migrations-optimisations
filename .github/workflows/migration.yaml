@@ -56,11 +56,11 @@ jobs:
                 Write-Host "Got hash $hash"
                 "SQL_HASH=$hash" >> $env:GITHUB_OUTPUT
 
-                $result = az storage blob exists --account-name crezcomigrationsplatform --container-name migrations --name "$hash.exe"
+                $result = az storage blob exists --account-name crezcomigrationsplatform --container-name migrations --name "$hash.exe" --connection-string ${{ secrets.STORAGE_CONNECTION_STRING }}
                 Set-Variable -Name ${context}_CacheHit -Value ($result | ConvertFrom-Json).exists
                 if (Get-Variable -Name ${context}_CacheHit) {
                   Write-Host "Cache hit, downloading migrations"
-                  az storage blob download -f "${{ github.workspace }}/migration-${context}-${{ github.run_number }}.exe" --account-name efmigrationscache --container-name migrations --name "$hash.exe"
+                  az storage blob download -f "${{ github.workspace }}/migration-${context}-${{ github.run_number }}.exe" --account-name efmigrationscache --connection-string ${{ secrets.STORAGE_CONNECTION_STRING }} --container-name migrations --name "$hash.exe"
                 } else {
                   Write-Host "Cache not hit, generating migrations"
                 }
