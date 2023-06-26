@@ -1,0 +1,108 @@
+name: EF Migrations
+
+on:
+  push:
+  workflow_dispatch:
+
+env:
+  WORKING_DIRECTORY: 'EfMigrationsOptimisations'
+  BUILD_CONFIGURATION: 'Release'
+
+jobs:
+  RunMigration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install .NET Core 7 SDK
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ vars.DOTNET_VERSION }}
+
+      - name: Install dotnet-ef
+        run: dotnet tool install --global dotnet-ef
+
+      - name: Restore project
+        run: dotnet restore EfMigrationsOptimisations/EfMigrationsOptimisations.csproj
+
+      - name: Build project
+        run: dotnet build --no-restore --configuration ${{ env.BUILD_CONFIGURATION }} EfMigrationsOptimisations/EfMigrationsOptimisations.csproj
+
+      - name: Generate Scripts for Hash
+        shell: pwsh
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          $contexts = "TestContext"
+
+          foreach ($context in $contexts)
+          {
+            Write-Host "Generating script for $context"
+            dotnet-ef migrations script --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --context $context -o ${{ github.workspace }}/migration-$context-${{ github.run_number }}.sql
+          }
+
+      - name: Check Cache
+        uses: azure/powershell@v1
+        id: checkCache
+        with:
+          inlinescript: |
+            $contexts = "TestContext"
+            
+            foreach ($context in $contexts)
+            {
+              New-Variable -Name ${context}-CacheHit -Value $false;
+              try {
+                Write-Host "Checking file hash"
+                $hash = (Get-FileHash ${{ github.workspace }}/migration-${context}-${{ github.run_number }}.sql).Hash
+                Write-Host "Got hash $hash"
+                "SQL_HASH=$hash" >> $env:GITHUB_OUTPUT
+
+                $result = az storage blob exists --account-name crezcomigrationsplatform --container-name migrations --name "$hash.exe"
+                ${context}-CacheHit = ($result | ConvertFrom-Json).exists
+                if (${context}-CacheHit) {
+                  Write-Host "Cache hit, downloading migrations"
+                  az storage blob download -f "${{ github.workspace }}/migration-${context}-${{ github.run_number }}.exe" --account-name crezcomigrationsplatform --container-name migrations --name "$hash.exe"
+                } else {
+                  Write-Host "Cache not hit, generating migrations"
+                }
+              }
+              catch {
+                Write-Host "Error occurred when checking cache, setting cache hit to false"
+              }
+              echo "${context}_CACHE_HIT=${context}-CacheHit" >> $env:GITHUB_OUTPUT
+            }
+          azPSVersion: "latest"
+
+      - name: Create Bundles
+        shell: pwsh
+        run: |
+          Write-Host "Creating bundles for scripts that aren't in cache"
+
+          $contexts = "TestContext"
+
+          foreach ($context in $contexts)
+          {
+            $cacheHitOutput = "steps.checkCache.outputs.${context}_CACHE_HIT"
+            Write-Host $cacheHitOutput
+          }
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+
+      - name: Upload Bundles to Cache
+        uses: azure/powershell@v1
+        with:
+          inlinescript: |
+            Write-Host "Uploading migrations to cache"
+
+            $contexts = "TestContext"
+
+            foreach ($context in $contexts)
+            {
+              $cacheHitOutput = "steps.checkCache.outputs.${context}_CACHE_HIT"
+              Write-Host $cacheHitOutput
+            }
+          azPSVersion: "latest"
+
+      - name: 'TestContext: Publish Bundle'
+        uses: actions/upload-artifact@v3
+        with:
+          path: ${{ github.workspace }}/migration-TestContext-${{ github.run_number }}.exe
+          name: Migration.TestContext-${{ github.run_number }}
