@@ -90,6 +90,7 @@ jobs:
         working-directory: ${{ env.WORKING_DIRECTORY }}
 
       - name: Upload Bundles to Cache
+        if: steps.checkCache.outputs.TestContext_CACHE_HIT != 'false'
         uses: azure/powershell@v1
         with:
           inlinescript: |
