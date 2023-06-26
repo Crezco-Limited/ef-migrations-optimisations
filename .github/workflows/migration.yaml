@@ -69,8 +69,9 @@ jobs:
                 Write-Host "Error occurred when checking cache, setting cache hit to false"
               }
               Set-Variable -Name ${context}_CACHE_HIT -Value (Get-Variable -Name ${context}_CacheHit -ValueOnly)
+              
               Get-Variable -Name ${context}_CACHE_HIT -ValueOnly
-              echo "$(Set-Variable -Name ${context}_CACHE_HIT -Value (Get-Variable -Name ${context}_CacheHit -ValueOnly))" >> $env:GITHUB_OUTPUT
+              echo "${context}_CACHE_HIT=$(Get-Variable -Name ${context}_CacheHit -ValueOnly)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
             }
           azPSVersion: "latest"
 
