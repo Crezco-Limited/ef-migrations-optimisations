@@ -79,7 +79,7 @@ jobs:
         shell: pwsh
         run: |
           Write-Host "Creating bundles for scripts that aren't in cache"
-
+          echo ${{ steps.checkCache.outputs.TestContext_CACHE_HIT }}
           $contexts = "TestContext"
 
           foreach ($context in $contexts)
