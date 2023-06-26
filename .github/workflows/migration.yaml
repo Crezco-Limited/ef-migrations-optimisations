@@ -75,6 +75,7 @@ jobs:
           azPSVersion: "latest"
 
       - name: Create Bundles
+        if: steps.checkCache.outputs.TestContext_CACHE_HIT != 'true'
         shell: pwsh
         run: |
           Write-Host "Creating bundles for scripts that aren't in cache"
