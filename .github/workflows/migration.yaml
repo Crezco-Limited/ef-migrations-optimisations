@@ -66,6 +66,9 @@ jobs:
                 } else {
                   Write-Host "Cache not hit, generating migrations"
                   dotnet-ef migrations bundle -o ${{ github.workspace }}/migration-${context}-${{ github.run_number }}.exe --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbose --context ${context}
+            
+                  Write-Host "Bundle created, uploading to cache"
+                  az storage blob upload -f "${{ github.workspace }}/migration-${context}-${{ github.run_number }}.exe" --account-name efmigrationscache --account-key ${{ secrets.ACCOUNT_KEY }} --container-name migrations --name "${{ env.SQL_HASH }}.exe" --overwrite
                 }
               }
               catch {
@@ -88,22 +91,6 @@ jobs:
             Write-Host $cacheHitOutput
           }
         working-directory: ${{ env.WORKING_DIRECTORY }}
-
-      - name: Upload Bundles to Cache
-        if: steps.checkCache.outputs.TestContext_CACHE_HIT != 'False'
-        uses: azure/powershell@v1
-        with:
-          inlinescript: |
-            Write-Host "Uploading migrations to cache"
-
-            $contexts = "TestContext"
-
-            foreach ($context in $contexts)
-            {
-              $cacheHitOutput = "steps.checkCache.outputs.${context}_CACHE_HIT"
-              Write-Host $cacheHitOutput
-            }
-          azPSVersion: "latest"
 
       - name: 'TestContext: Publish Bundle'
         uses: actions/upload-artifact@v3
