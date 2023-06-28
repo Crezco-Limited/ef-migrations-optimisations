@@ -23,7 +23,7 @@ jobs:
         run: dotnet tool install --global dotnet-ef
 
       - name: Restore project
-        run: dotnet restore EfMigrationsOptimisations/EfMigrationsOptimisations.csproj
+        run: dotnet restore -r linux-x64 EfMigrationsOptimisations/EfMigrationsOptimisations.csproj
 
       - name: Build project
         run: dotnet build --no-restore --configuration ${{ env.BUILD_CONFIGURATION }} EfMigrationsOptimisations/EfMigrationsOptimisations.csproj
@@ -65,7 +65,7 @@ jobs:
                   az storage blob download -f "${{ github.workspace }}/migration-${context}-${{ github.run_number }}.exe" --account-name efmigrationscache --account-key ${{ secrets.ACCOUNT_KEY }} --container-name migrations --name "$hash.exe"
                 } else {
                   Write-Host "Cache not hit, generating migrations"
-                  dotnet-ef migrations bundle -o ${{ github.workspace }}/migration-${context}-${{ github.run_number }}.exe -r linux-x64 --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbose --context ${context}
+                  dotnet-ef migrations bundle -o ${{ github.workspace }}/migration-${context}-${{ github.run_number }}.exe --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbose --context ${context}
                 }
               }
               catch {
