@@ -47,10 +47,11 @@ jobs:
           inlinescript: |
             cd ${{ env.WORKING_DIRECTORY }}
             
-            $contexts = "TestContext"
+            $contexts = ${{ vars.CONTEXTS }}
             
-            foreach ($context in $contexts)
+            foreach ($context in $contexts.Split(","))
             {
+              Write-Host "${context}"
               New-Variable -Name ${context}_CacheHit -Value $false;
               try {
                 Write-Host "Checking file hash"
@@ -76,20 +77,6 @@ jobs:
               Write-Output "${context}_CACHE_HIT=$(Get-Variable -Name ${context}_CacheHit -ValueOnly)" >> $Env:GITHUB_OUTPUT
             }
           azPSVersion: "latest"
-
-      - name: Create Bundles
-        shell: pwsh
-        run: |
-          Write-Host "Creating bundles for scripts that aren't in cache"
-          Write-Host ${{ steps.checkCache.outputs.TestContext_CACHE_HIT }}
-          $contexts = "TestContext"
-
-          foreach ($context in $contexts)
-          {
-            $cacheHitOutput = "steps.checkCache.outputs.${context}_CACHE_HIT"
-            Write-Host $cacheHitOutput
-          }
-        working-directory: ${{ env.WORKING_DIRECTORY }}
 
       - name: 'TestContext: Publish Bundle'
         uses: actions/upload-artifact@v3
