@@ -47,7 +47,7 @@ jobs:
           inlinescript: |
             cd ${{ env.WORKING_DIRECTORY }}
             
-            $contexts = ${{ vars.CONTEXTS }}
+            $contexts = "${{ vars.CONTEXTS }}"
             
             foreach ($context in $contexts.Split(","))
             {
